@@ -4,11 +4,11 @@ SwwwwSgggWWgttttttgg
 SwwwwSggWWggtttttggg
 SSSDSSggWggtttgggggg
 ggg_gggWWWgtgggggggg
-.ggg_gggWgW.ggggggggg
-____ggWWgWWggggg_____
-_gttgWWWggWgggg_ggggg
+.ggg_gggWgW.gggggggg
+____ggWWgWWggggg____
+_gttgWWWggWgggg_gggg
 _ggtgWWgggWgggBDBggg
-_gggggggggWWggBfB.ggg
+_gggggggggWWggBfB.gg
 _gggggttgWWggBBfBBgg
 _gggggtggW,ggBfffBgg
 _ggggggggWWggBfffBgg

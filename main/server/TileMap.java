@@ -1,20 +1,33 @@
-package comp3050;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 public class TileMap {
-
-    private static final String MAP_FILE = "src/main/resources/map.txt";
+    private static final String[] MAP_FILE_CANDIDATES = {
+        "main/server/map.txt",
+        "map.txt"
+    };
 
     private final char[][] tiles;
     private final int height;
     private final int width;
 
     public TileMap() throws IOException {
-        List<String> rows = Files.readAllLines(Path.of(MAP_FILE))
+        Path mapPath = null;
+        for (String candidate : MAP_FILE_CANDIDATES) {
+            Path path = Path.of(candidate);
+            if (Files.exists(path)) {
+                mapPath = path;
+                break;
+            }
+        }
+
+        if (mapPath == null) {
+            throw new IllegalArgumentException("Map file not found.");
+        }
+
+        List<String> rows = Files.readAllLines(mapPath)
             .stream()
             .filter(line -> !line.isBlank())
             .toList();

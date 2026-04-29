@@ -1,0 +1,118 @@
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+
+public class InfoHandler implements HttpHandler {
+    private final TileMap tileMap;
+    private final GameState gameState;
+
+    public InfoHandler(TileMap tileMap, GameState gameState) {
+        this.tileMap = tileMap;
+        this.gameState = gameState;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        setCorsHeaders(exchange);
+        exchange.getResponseHeaders().set("Connection", "close");
+
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return;
+        }
+
+        Integer requestY = null;
+        Integer requestX = null;
+
+        String query = exchange.getRequestURI().getQuery();
+        if (query != null && !query.isBlank()) {
+            try {
+                String[] parts = query.split("&");
+                for (String part : parts) {
+                    String[] kv = part.split("=", 2);
+                    if (kv.length != 2) {
+                        continue;
+                    }
+
+                    if ("y".equals(kv[0])) {
+                        requestY = Integer.parseInt(kv[1]);
+                    } else if ("x".equals(kv[0])) {
+                        requestX = Integer.parseInt(kv[1]);
+                    }
+                }
+            } catch (NumberFormatException e) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+                return;
+            }
+        }
+
+        if (requestY == null || requestX == null) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return;
+        }
+
+        // Spec: only allow INFO for the player's current absolute location.
+        if (requestY != gameState.getPlayerY() || requestX != gameState.getPlayerX()) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return;
+        }
+
+        int top = Math.max(0, requestY - 5);
+        int left = Math.max(0, requestX - 5);
+        int bottom = Math.min(tileMap.getHeight() - 1, requestY + 5);
+        int right = Math.min(tileMap.getWidth() - 1, requestX + 5);
+
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+        json.append("\"y\":").append(requestY).append(",");
+        json.append("\"x\":").append(requestX).append(",");
+        json.append("\"top\":").append(top).append(",");
+        json.append("\"left\":").append(left).append(",");
+        json.append("\"bottom\":").append(bottom).append(",");
+        json.append("\"right\":").append(right).append(",");
+        json.append("\"info\":[");
+
+        for (int y = top; y <= bottom; y++) {
+            if (y > top) {
+                json.append(",");
+            }
+            json.append("[");
+            for (int x = left; x <= right; x++) {
+                if (x > left) {
+                    json.append(",");
+                }
+                json.append("\"").append(tileMap.getTileOrBlank(y, x)).append("\"");
+            }
+            json.append("]");
+        }
+
+        json.append("]}");
+
+        byte[] body = json.toString().getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, body.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(body);
+        }
+    }
+
+    private void setCorsHeaders(HttpExchange exchange) {
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin == null ? "*" : origin);
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().set("Vary", "Origin");
+
+        String requestPrivateNetwork = exchange.getRequestHeaders().getFirst("Access-Control-Request-Private-Network");
+        if ("true".equalsIgnoreCase(requestPrivateNetwork)) {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Private-Network", "true");
+        }
+    }
+}
