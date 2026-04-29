@@ -5,9 +5,9 @@ public class GameState {
     private int playerY;
     private int playerX;
 
-    public GameState(int playerY, int playerX) {
-        this.playerY = playerY;
-        this.playerX = playerX;
+    public GameState(int startingY, int startingX) {
+        this.playerY = startingY;
+        this.playerX = startingX;
     }
 
     public int getPlayerY() {
@@ -18,8 +18,8 @@ public class GameState {
         return playerX;
     }
 
-    public void setPlayerPosition(int playerY, int playerX) {
-        this.playerY = playerY;
-        this.playerX = playerX;
+    public void setPlayerPosition(int y, int x) {
+        this.playerY = y;
+        this.playerX = x;
     }
 }

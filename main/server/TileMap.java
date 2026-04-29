@@ -7,11 +7,18 @@ import java.util.List;
 
 public class TileMap {
 
+    private static final String MAP_FILE = "src/main/resources/map.txt";
+
     private final char[][] tiles;
     private final int height;
     private final int width;
 
-    public TileMap(List<String> rows) {
+    public TileMap() throws IOException {
+        List<String> rows = Files.readAllLines(Path.of(MAP_FILE))
+            .stream()
+            .filter(line -> !line.isBlank())
+            .toList();
+
         if (rows.isEmpty()) {
             throw new IllegalArgumentException("Map cannot be empty.");
         }
@@ -40,15 +47,6 @@ public class TileMap {
                 tiles[y][x] = row.charAt(x);
             }
         }
-    }
-
-    public static TileMap loadFromFile(String filePath) throws IOException {
-        List<String> rows = Files.readAllLines(Path.of(filePath))
-            .stream()
-            .filter(line -> !line.isBlank())
-            .toList();
-
-        return new TileMap(rows);
     }
 
     public boolean isInBounds(int y, int x) {
