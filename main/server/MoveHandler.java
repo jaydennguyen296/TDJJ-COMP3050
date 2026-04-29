@@ -1,31 +1,34 @@
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class MoveHandler implements HttpHandler {
 
+    private final TileMap tileMap;
     private GameState gameState;
 
-    public MoveHandler(GameState gameState) {
+    public MoveHandler(TileMap tileMap, GameState gameState) {
+        this.tileMap = tileMap;
         this.gameState = gameState;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        
-        // handle CORS like MyHandler
-        String origin = he.getRequestHeaders().getFirst("Origin");
-        he.getResponseHeaders().add("Access-Control-Allow-Origin", origin);
-        he.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+        setCorsHeaders(exchange);
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return;
+        }
 
         int dy = 0;
         int dx = 0;
 
         //get query from url
-        String query = he.getRequestURI().getQuery();
+        String query = exchange.getRequestURI().getQuery();
 
         if (query != null){
             String[] parts = query.split("&");
@@ -41,15 +44,15 @@ public class MoveHandler implements HttpHandler {
 
         //No diagonal moves 
         if (dy != 0 && dx != 0){
-            he.sendResponseHeaders(204, -1);
-            he.close();
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
             return;
         }
 
         //only 1 step at a time
-        if (Math.abs(dy) > 1 || Math.abs(dx > 1)){
-            he.sendResponseHeaders(204, -1);
-            he.close();
+        if (Math.abs(dy) > 1 || Math.abs(dx) > 1){
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
             return;
         }
 
@@ -58,9 +61,9 @@ public class MoveHandler implements HttpHandler {
         int newX = gameState.getPlayerX() + dx;
 
         //check if blocked or out of bounds
-        if (gameState.isValidPosition(newY, newX)){
-            he.sendResponseHeaders(204, -1);
-            he.close();
+        if (tileMap.isBlocking(newY, newX)){
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
             return;
         }
 
@@ -68,14 +71,28 @@ public class MoveHandler implements HttpHandler {
         gameState.setPlayerPosition(newY, newX);
 
         // send back new position 
-        Headers headers = he.getResponseHeaders();
+        Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("Connection", "close");
 
         String json = "{\"y\":" + newY + ",\"x\":" + newX + "}";
-        he.sendResponseHeaders(200, json.length());
-        OutputStream os = he.getResponseBody();
-        os.write(json.getBytes());
+        byte[] body = json.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(200, body.length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(body);
         os.close(); 
+    }
+
+    private void setCorsHeaders(HttpExchange exchange) {
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin == null ? "*" : origin);
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().set("Vary", "Origin");
+
+        String requestPrivateNetwork = exchange.getRequestHeaders().getFirst("Access-Control-Request-Private-Network");
+        if ("true".equalsIgnoreCase(requestPrivateNetwork)) {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Private-Network", "true");
+        }
     }
 }
