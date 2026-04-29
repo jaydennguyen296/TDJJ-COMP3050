@@ -13,7 +13,7 @@ public class MoveHandler implements HttpHandler {
     }
 
     @Override
-    public void handle(HttpExchange exchange) throws IOException {
+    public void handle(HttpExchange he) throws IOException {
         
         // handle CORS like MyHandler
         String origin = he.getRequestHeaders().getFirst("Origin");
