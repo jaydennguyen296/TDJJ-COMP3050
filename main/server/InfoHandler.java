@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class InfoHandler implements HttpHandler {
+
     private final TileMap tileMap;
     private final GameState gameState;
 
@@ -29,25 +30,15 @@ public class InfoHandler implements HttpHandler {
         Integer requestX = null;
 
         String query = exchange.getRequestURI().getQuery();
-        if (query != null && !query.isBlank()) {
-            try {
-                String[] parts = query.split("&");
-                for (String part : parts) {
-                    String[] kv = part.split("=", 2);
-                    if (kv.length != 2) {
-                        continue;
-                    }
-
-                    if ("y".equals(kv[0])) {
-                        requestY = Integer.parseInt(kv[1]);
-                    } else if ("x".equals(kv[0])) {
-                        requestX = Integer.parseInt(kv[1]);
-                    }
+        if (query != null) {
+            String[] parts = query.split("&");
+            for (String part : parts) {
+                String[] kv = part.split("=");
+                if ("y".equals(kv[0])) {
+                    requestY = Integer.parseInt(kv[1]);
+                } else if ("x".equals(kv[0])) {
+                    requestX = Integer.parseInt(kv[1]);
                 }
-            } catch (NumberFormatException e) {
-                exchange.sendResponseHeaders(204, -1);
-                exchange.close();
-                return;
             }
         }
 
@@ -57,8 +48,10 @@ public class InfoHandler implements HttpHandler {
             return;
         }
 
-        // Spec: only allow INFO for the player's current absolute location.
-        if (requestY != gameState.getPlayerY() || requestX != gameState.getPlayerX()) {
+        int playerY = gameState.getPlayerY();
+        int playerX = gameState.getPlayerX();
+
+        if (requestY != playerY || requestX != playerX) {
             exchange.sendResponseHeaders(204, -1);
             exchange.close();
             return;
