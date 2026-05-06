@@ -27,16 +27,15 @@ public class MoveHandler implements HttpHandler {
         int dy = 0;
         int dx = 0;
 
-        //get query from url
         String query = exchange.getRequestURI().getQuery();
 
-        if (query != null){
+        if (query != null) {
             String[] parts = query.split("&");
-            for (String part : parts){
+            for (String part : parts) {
                 String[] kv = part.split("=");
-                if (kv[0].equals("dy")){
+                if (kv[0].equals("dy")) {
                     dy = Integer.parseInt(kv[1]);
-                } else if (kv[0].equals("dx")){
+                } else if (kv[0].equals("dx")) {
                     dx = Integer.parseInt(kv[1]);
                 }
             }
@@ -56,12 +55,10 @@ public class MoveHandler implements HttpHandler {
             return;
         }
 
-        //work out new position 
         int newY = gameState.getPlayerY() + dy;
-        int newX = gameState.getPlayerX() + dx;
+        int newX = tileMap.wrapX(gameState.getPlayerX() + dx);
 
-        //check if blocked or out of bounds
-        if (tileMap.isBlocking(newY, newX)){
+        if (tileMap.isBlocking(newY, newX)) {
             exchange.sendResponseHeaders(204, -1);
             exchange.close();
             return;

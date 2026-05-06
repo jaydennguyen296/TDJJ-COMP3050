@@ -66,6 +66,16 @@ public class TileMap {
         return y >= 0 && y < height && x >= 0 && x < width;
     }
 
+    //Same horizontal wrap as the client 
+    public int wrapX(int x) {
+        int w = width;
+        if (w <= 0) {
+            return x;
+        }
+        int m = x % w;
+        return m < 0 ? m + w : m;
+    }
+
     public char getTileOrBlank(int y, int x) {
         if (!isInBounds(y, x)) {
             return ' ';
