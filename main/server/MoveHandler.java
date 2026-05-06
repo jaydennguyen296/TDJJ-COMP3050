@@ -23,6 +23,13 @@ public class MoveHandler implements HttpHandler {
             exchange.close();
             return;
         }
+    public void handle(HttpExchange he) throws IOException {
+        
+        // handle CORS like MyHandler
+        String origin = he.getRequestHeaders().getFirst("Origin");
+        he.getResponseHeaders().add("Access-Control-Allow-Origin", origin);
+        he.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
 
         int dy = 0;
         int dx = 0;
