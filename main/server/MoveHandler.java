@@ -14,15 +14,16 @@ public class MoveHandler implements HttpHandler {
         this.tileMap = tileMap;
         this.gameState = gameState;
     }
-
-    public void handle(HttpExchange he) throws IOException {
+    
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        setCorsHeaders(exchange);
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return;
+        }
         
-        // handle CORS like MyHandler
-        String origin = he.getRequestHeaders().getFirst("Origin");
-        he.getResponseHeaders().add("Access-Control-Allow-Origin", origin);
-        he.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
-
         int dy = 0;
         int dx = 0;
 
