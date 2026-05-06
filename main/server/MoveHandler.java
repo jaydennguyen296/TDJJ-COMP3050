@@ -15,14 +15,6 @@ public class MoveHandler implements HttpHandler {
         this.gameState = gameState;
     }
 
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        setCorsHeaders(exchange);
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(204, -1);
-            exchange.close();
-            return;
-        }
     public void handle(HttpExchange he) throws IOException {
         
         // handle CORS like MyHandler
