@@ -22,3 +22,10 @@ jobs:
 
       - name: Build and test
         run: mvn test
+
+      - name: Compile server
+        working-directory: main/server
+        run: javac *.java
+
+      - name: Build Docker image
+        run: docker build -f .devcontainer/Dockerfile -t comp3050-assignment .
