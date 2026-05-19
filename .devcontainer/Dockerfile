@@ -5,10 +5,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     maven \
     git \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    nginx \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
 
+COPY .devcontainer/nginx.conf /etc/nginx/conf.d/default.conf
 COPY . .
 RUN javac /workspace/main/server/*.java
-EXPOSE 8000
+EXPOSE 80 8000
 CMD ["java", "-cp", "/workspace/main/server", "Server"]
 

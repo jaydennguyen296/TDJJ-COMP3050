@@ -1,5 +1,5 @@
 {
-    "name": "COMP3050 Week 4 – Testing",
+    "name": "COMP3050 Group Project",
     "dockerComposeFile": "docker-compose.yml",
     "service": "server",
     "workspaceFolder": "/workspace",
@@ -21,5 +21,10 @@
             }
         }
     },
-    "postCreateCommand": "mvn dependency:resolve"
+    "overrideCommand": false,
+    "postCreateCommand": "mvn -q dependency:resolve && javac /workspace/main/server/*.java",
+    "portsAttributes": {
+        "80": { "label": "nginx → server" },
+        "8000": { "label": "Java server" }
+    }
 }
