@@ -1,9 +1,9 @@
 {
     "name": "COMP3050 Week 4 – Testing",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "forwardPorts": [8000],
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "server",
+    "workspaceFolder": "/workspace",
+    "forwardPorts": [80, 8000],
     "customizations": {
         "vscode": {
             "extensions": [

@@ -1,0 +1,18 @@
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    expose:
+      - "8000"
+    volumes:
+      - ..:/workspace
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - server

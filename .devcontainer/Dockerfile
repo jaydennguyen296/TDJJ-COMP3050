@@ -1,4 +1,5 @@
 FROM eclipse-temurin:18-jdk
+WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     maven \
@@ -6,7 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify installations
-RUN java --version && mvn --version && git --version
+COPY . .
+RUN javac /workspace/main/server/*.java
+EXPOSE 8000
+CMD ["java", "-cp", "/workspace/main/server", "Server"]
 
-WORKDIR /workspace
