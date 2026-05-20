@@ -40,7 +40,7 @@ jobs:
       - name: Scan source code with Semgrep
         run: |
           pip3 install semgrep
-          semgrep --config .semgrep.yml --config auto --error src/main/java/
+          semgrep --config .semgrep.yml --config auto --error src/main/
 
   scan-image:
     runs-on: ubuntu-latest
