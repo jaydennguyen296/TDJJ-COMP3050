@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY .devcontainer/nginx.conf /etc/nginx/conf.d/default.conf
 COPY . .
-RUN javac /workspace/main/server/*.java
+RUN mvn -q compile
 EXPOSE 80 8000
-CMD ["java", "-cp", "/workspace/main/server", "Server"]
+CMD ["bash"]
 

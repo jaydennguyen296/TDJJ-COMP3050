@@ -24,11 +24,33 @@ jobs:
         run: mvn test
 
       - name: Compile server
-        working-directory: main/server
-        run: javac *.java
+        run: mvn -q compile
 
       - name: Build devcontainer Docker image
         run: docker build -f .devcontainer/Dockerfile -t comp3050-assignment .
 
       - name: Build production Docker image
-        run: docker build -t comp3050-server:latest .
+        run: docker build -t comp3050-server .
+
+  scan-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan source code with Semgrep
+        run: |
+          pip3 install semgrep
+          semgrep --config .semgrep.yml --config auto --error src/main/
+
+  scan-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t my-app .
+
+      - name: Scan Docker image with Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/refs/tags/v0.69.3/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.3
+          trivy image --severity HIGH,CRITICAL --exit-code 1 my-app
