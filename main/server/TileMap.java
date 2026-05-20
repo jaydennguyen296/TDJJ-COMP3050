@@ -4,30 +4,14 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class TileMap {
-    private static final String[] MAP_FILE_CANDIDATES = {
-        "main/server/map.txt",
-        "map.txt"
-    };
+    private static final String map = "map.txt";
 
     private final char[][] tiles;
     private final int height;
     private final int width;
 
     public TileMap() throws IOException {
-        Path mapPath = null;
-        for (String candidate : MAP_FILE_CANDIDATES) {
-            Path path = Path.of(candidate);
-            if (Files.exists(path)) {
-                mapPath = path;
-                break;
-            }
-        }
-
-        if (mapPath == null) {
-            throw new IllegalArgumentException("Map file not found.");
-        }
-
-        List<String> rows = Files.readAllLines(mapPath)
+        List<String> rows = Files.readAllLines(Path.of(map))
             .stream()
             .filter(line -> !line.isBlank())
             .toList();

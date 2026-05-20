@@ -31,9 +31,14 @@ public class InfoHandler implements HttpHandler {
 
         String query = exchange.getRequestURI().getQuery();
         if (query != null) {
+            System.out.println("Query: " + query); //Print
             String[] parts = query.split("&");
             for (String part : parts) {
+                System.out.println("Part: " + part); //Print
                 String[] kv = part.split("=");
+                for (String s : kv) {
+                    System.out.println(s); //Print
+                }
                 if ("y".equals(kv[0])) {
                     requestY = Integer.parseInt(kv[1]);
                 } else if ("x".equals(kv[0])) {
@@ -43,15 +48,6 @@ public class InfoHandler implements HttpHandler {
         }
 
         if (requestY == null || requestX == null) {
-            exchange.sendResponseHeaders(204, -1);
-            exchange.close();
-            return;
-        }
-
-        int playerY = gameState.getPlayerY();
-        int playerX = gameState.getPlayerX();
-
-        if (requestY != playerY || requestX != playerX) {
             exchange.sendResponseHeaders(204, -1);
             exchange.close();
             return;
