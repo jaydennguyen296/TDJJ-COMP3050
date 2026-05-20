@@ -22,7 +22,7 @@
         }
     },
     "overrideCommand": false,
-    "postCreateCommand": "mvn -q dependency:resolve && javac /workspace/main/server/*.java",
+    "postCreateCommand": "mvn -q dependency:resolve compile",
     "portsAttributes": {
         "80": { "label": "nginx → server" },
         "8000": { "label": "Java server" }
