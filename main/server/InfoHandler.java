@@ -53,15 +53,18 @@ public class InfoHandler implements HttpHandler {
             return;
         }
 
-        int top = Math.max(0, requestY - 5);
-        int left = Math.max(0, requestX - 5);
-        int bottom = Math.min(tileMap.getHeight() - 1, requestY + 5);
-        int right = Math.min(tileMap.getWidth() - 1, requestX + 5);
+        int playerY = gameState.getPlayerY();
+        int playerX = gameState.getPlayerX();
+
+        int top = Math.max(0, playerY - 5);
+        int left = tileMap.wrapX(playerX - 5);
+        int bottom = Math.min(tileMap.getHeight() - 1, playerY + 5);
+        int right = tileMap.wrapX(playerX + 5);
 
         StringBuilder json = new StringBuilder();
         json.append("{");
-        json.append("\"y\":").append(requestY).append(",");
-        json.append("\"x\":").append(requestX).append(",");
+        json.append("\"y\":").append(playerY).append(",");
+        json.append("\"x\":").append(playerX).append(",");
         json.append("\"top\":").append(top).append(",");
         json.append("\"left\":").append(left).append(",");
         json.append("\"bottom\":").append(bottom).append(",");
@@ -73,10 +76,11 @@ public class InfoHandler implements HttpHandler {
                 json.append(",");
             }
             json.append("[");
-            for (int x = left; x <= right; x++) {
-                if (x > left) {
+            for (int col = 0; col <= 10; col++) {
+                if (col > 0) {
                     json.append(",");
                 }
+                int x = tileMap.wrapX(playerX - 5 + col);
                 json.append("\"").append(tileMap.getTileOrBlank(y, x)).append("\"");
             }
             json.append("]");
