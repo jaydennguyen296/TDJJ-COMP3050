@@ -6,8 +6,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class LoginHandler implements HttpHandler {
-    private static final String VALID_USER = "admin";
-    private static final String VALID_PASS = "password123";
+    private static final String VALID_USER = System.getenv("APP_USER");
+    private static final String VALID_PASS = System.getenv("APP_PASS");
 
     @Override
     public void handle(HttpExchange he) throws IOException {
@@ -21,7 +21,9 @@ public class LoginHandler implements HttpHandler {
         String user = params.get("user");
         String pass = params.get("pass");
 
-        if (VALID_USER.equals(user) && VALID_PASS.equals(pass)) {
+        if (VALID_USER != null && VALID_PASS != null
+            && VALID_USER.equals(user) && VALID_PASS.equals(pass)) {
+        
             String token = SessionManager.getInstance().createSession(user);
             sendResponse(he, 200, "{\"token\":\"" + token + "\"}");
         } else {

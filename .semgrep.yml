@@ -1,0 +1,13 @@
+rules:
+  - id: hardcoded-credentials
+    patterns:
+      - pattern: |
+          $TYPE $FIELD = "...";
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i).*(pass|password|secret|key|token).*
+    message: >-
+      Hardcoded credential in '$FIELD'. Use environment variables
+      or a secrets manager instead of embedding secrets in source code.
+    severity: WARNING
+    languages: [java]
