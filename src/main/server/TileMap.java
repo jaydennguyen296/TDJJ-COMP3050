@@ -4,14 +4,12 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class TileMap {
-    private static final String map = "map.txt";
-
     private final char[][] tiles;
     private final int height;
     private final int width;
 
     public TileMap() throws IOException {
-        List<String> rows = Files.readAllLines(Path.of(map))
+        List<String> rows = Files.readAllLines(resolveMapPath())
             .stream()
             .filter(line -> !line.isBlank())
             .toList();
@@ -87,5 +85,19 @@ public class TileMap {
 
     public int getWidth() {
         return width;
+    }
+
+    private static Path resolveMapPath() throws IOException {
+        Path direct = Path.of("map.txt");
+        if (Files.exists(direct)) {
+            return direct;
+        }
+
+        Path inSourceTree = Path.of("src/main/server/map.txt");
+        if (Files.exists(inSourceTree)) {
+            return inSourceTree;
+        }
+
+        throw new IOException("Could not find map.txt in working directory or src/main/server/");
     }
 }
