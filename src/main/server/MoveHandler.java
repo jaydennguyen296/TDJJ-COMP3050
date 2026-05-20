@@ -91,6 +91,16 @@ public class MoveHandler implements HttpHandler {
         if (auth != null && auth.startsWith("Bearer ")) {
             return auth.substring(7);
         }
+        String query = exchange.getRequestURI().getQuery();
+        if (query == null) {
+            return null;
+        }
+        for (String param : query.split("&")) {
+            String[] pair = param.split("=", 2);
+            if (pair.length == 2 && "session".equals(pair[0])) {
+                return pair[1];
+            }
+        }
         return null;
     }
 

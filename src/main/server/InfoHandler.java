@@ -48,30 +48,25 @@ public class InfoHandler implements HttpHandler {
             }
         }
 
-        if (requestY == null || requestX == null) {
-            exchange.sendResponseHeaders(204, -1);
-            exchange.close();
-            return;
-        }
-
         int playerY = gameState.getPlayerY();
         int playerX = gameState.getPlayerX();
 
-        if (requestY != playerY || requestX != playerX) {
-            exchange.sendResponseHeaders(204, -1);
-            exchange.close();
-            return;
+        int responseY = playerY;
+        int responseX = playerX;
+        if (requestY != null && requestX != null && requestY == playerY && requestX == playerX) {
+            responseY = requestY;
+            responseX = requestX;
         }
 
-        int top = Math.max(0, requestY - 5);
-        int left = Math.max(0, requestX - 5);
-        int bottom = Math.min(tileMap.getHeight() - 1, requestY + 5);
-        int right = Math.min(tileMap.getWidth() - 1, requestX + 5);
+        int top = Math.max(0, responseY - 5);
+        int left = Math.max(0, responseX - 5);
+        int bottom = Math.min(tileMap.getHeight() - 1, responseY + 5);
+        int right = Math.min(tileMap.getWidth() - 1, responseX + 5);
 
         StringBuilder json = new StringBuilder();
         json.append("{");
-        json.append("\"y\":").append(requestY).append(",");
-        json.append("\"x\":").append(requestX).append(",");
+        json.append("\"y\":").append(responseY).append(",");
+        json.append("\"x\":").append(responseX).append(",");
         json.append("\"top\":").append(top).append(",");
         json.append("\"left\":").append(left).append(",");
         json.append("\"bottom\":").append(bottom).append(",");
@@ -119,6 +114,16 @@ public class InfoHandler implements HttpHandler {
         String auth = he.getRequestHeaders().getFirst("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
             return auth.substring(7);
+        }
+        String query = he.getRequestURI().getQuery();
+        if (query == null) {
+            return null;
+        }
+        for (String param : query.split("&")) {
+            String[] pair = param.split("=", 2);
+            if (pair.length == 2 && "session".equals(pair[0])) {
+                return pair[1];
+            }
         }
         return null;
     }

@@ -6,7 +6,15 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     working_dir: /workspace
-    command: bash -c "nginx -g 'daemon off;'"
+    env_file:
+      - path: ../.env
+        required: false
+      - path: .env
+        required: false
+    command: >
+      bash -lc "mvn -q -DskipTests compile &&
+      (mvn -q exec:java &) &&
+      nginx -g 'daemon off;'"
     ports:
       - "80:80"
     expose:
