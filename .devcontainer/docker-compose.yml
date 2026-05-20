@@ -5,8 +5,8 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
-    working_dir: /workspace/main/server
-    command: bash -c "javac *.java && java Server & nginx -g 'daemon off;'"
+    working_dir: /workspace
+    command: bash -c "nginx -g 'daemon off;'"
     ports:
       - "80:80"
     expose:

@@ -3,7 +3,7 @@
 
 FROM eclipse-temurin:18-jdk AS build
 WORKDIR /build
-COPY main/server/*.java main/server/map.txt ./
+COPY src/main/server/*.java src/main/server/map.txt ./
 RUN javac *.java
 
 FROM eclipse-temurin:18-jre

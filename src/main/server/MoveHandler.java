@@ -23,7 +23,13 @@ public class MoveHandler implements HttpHandler {
             exchange.close();
             return;
         }
-        
+
+        String token = extractToken(exchange);
+        if (SessionManager.getInstance().getUser(token) == null) {
+            sendUnauthorized(exchange);
+            return;
+        }
+
         int dy = 0;
         int dx = 0;
 
@@ -80,11 +86,29 @@ public class MoveHandler implements HttpHandler {
         os.close(); 
     }
 
+    private String extractToken(HttpExchange exchange) {
+        String auth = exchange.getRequestHeaders().getFirst("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7);
+        }
+        return null;
+    }
+
+    private void sendUnauthorized(HttpExchange exchange) throws IOException {
+        byte[] body = "{\"error\":\"not authenticated\"}".getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.getResponseHeaders().set("Connection", "close");
+        exchange.sendResponseHeaders(401, body.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(body);
+        }
+    }
+
     private void setCorsHeaders(HttpExchange exchange) {
         String origin = exchange.getRequestHeaders().getFirst("Origin");
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin == null ? "*" : origin);
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
         exchange.getResponseHeaders().set("Vary", "Origin");
 
         String requestPrivateNetwork = exchange.getRequestHeaders().getFirst("Access-Control-Request-Private-Network");

@@ -5,8 +5,8 @@ import java.util.List;
 
 public class TileMap {
     private static final String[] MAP_FILE_CANDIDATES = {
-        "main/server/map.txt",
-        "map.txt"
+        "map.txt",
+        "src/main/server/map.txt"
     };
 
     private final char[][] tiles;

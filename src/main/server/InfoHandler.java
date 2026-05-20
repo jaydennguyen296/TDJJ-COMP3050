@@ -26,6 +26,12 @@ public class InfoHandler implements HttpHandler {
             return;
         }
 
+        String token = extractToken(exchange);
+        if (SessionManager.getInstance().getUser(token) == null) {
+            sendResponse(exchange, 401, "{\"error\":\"not authenticated\"}");
+            return;
+        }
+
         Integer requestY = null;
         Integer requestX = null;
 
@@ -100,12 +106,29 @@ public class InfoHandler implements HttpHandler {
         String origin = exchange.getRequestHeaders().getFirst("Origin");
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin == null ? "*" : origin);
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
         exchange.getResponseHeaders().set("Vary", "Origin");
 
         String requestPrivateNetwork = exchange.getRequestHeaders().getFirst("Access-Control-Request-Private-Network");
         if ("true".equalsIgnoreCase(requestPrivateNetwork)) {
             exchange.getResponseHeaders().set("Access-Control-Allow-Private-Network", "true");
         }
+    }
+    // Get Authorization token
+    private String extractToken(HttpExchange he) {
+        String auth = he.getRequestHeaders().getFirst("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7);
+        }
+        return null;
+    }
+
+    private void sendResponse(HttpExchange he, int status, String body)
+            throws IOException {
+        he.getResponseHeaders().set("Content-Type", "application/json");
+        he.sendResponseHeaders(status, body.getBytes().length);
+        OutputStream os = he.getResponseBody();
+        os.write(body.getBytes());
+        os.close();
     }
 }
