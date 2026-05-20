@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comp3050-server
+  labels:
+    app: comp3050-server
+spec:
+  # Single replica: player position is stored in JVM memory (GameState).
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comp3050-server
+  template:
+    metadata:
+      labels:
+        app: comp3050-server
+    spec:
+      containers:
+        - name: server
+          image: comp3050-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /info?y=5&x=5
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /info?y=5&x=5
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15

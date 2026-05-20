@@ -27,5 +27,8 @@ jobs:
         working-directory: main/server
         run: javac *.java
 
-      - name: Build Docker image
+      - name: Build devcontainer Docker image
         run: docker build -f .devcontainer/Dockerfile -t comp3050-assignment .
+
+      - name: Build production Docker image
+        run: docker build -t comp3050-server:latest .
