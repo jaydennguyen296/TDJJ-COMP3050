@@ -48,7 +48,7 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/game-server:latest
             docker stop app || true
             docker rm app || true
-            docker run -d --name app -p 8000:8000 \
+            docker run -d --name app -p 80:8000 \
               -e APP_USER=${{ secrets.APP_USER }} \
               -e APP_PASS=${{ secrets.APP_PASS }} \
               ${{ secrets.DOCKERHUB_USERNAME }}/game-server:latest
