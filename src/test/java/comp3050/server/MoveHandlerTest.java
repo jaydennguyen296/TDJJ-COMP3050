@@ -23,6 +23,7 @@ class MoveHandlerTest {
 
     @BeforeAll
     static void setup() throws Exception {
+        // Creates test server and move endpoint
         TileMap tileMap = new TileMap();
         GameState gameState = new GameState(5, 5);
 
@@ -33,16 +34,19 @@ class MoveHandlerTest {
         baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
         client = HttpClient.newHttpClient();
 
+        // Creates a valid session token for testing
         session = SessionManager.getInstance().createSession("JUnitMoveUser");
     }
 
     @AfterAll
     static void tearDown() {
+        // Stops server after tests finish
         server.stop(0);
     }
 
     @Test
     void moveWithoutSessionReturns401() throws Exception {
+        // V2: move requires authentication
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/move?dy=0&dx=1"))
                 .GET()
@@ -55,7 +59,8 @@ class MoveHandlerTest {
     }
 
     @Test
-    void diagonalMoveWithSessionReturns204() throws Exception {
+    void diagonalMoveReturns204() throws Exception {
+        // V1 rule: diagonal movement is not allowed
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/move?dy=1&dx=1&session=" + session))
                 .GET()
@@ -68,7 +73,8 @@ class MoveHandlerTest {
     }
 
     @Test
-    void moveMoreThanOneStepWithSessionReturns204() throws Exception {
+    void moveMoreThanOneTileReturns204() throws Exception {
+        // V1 rule: only one tile movement allowed
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/move?dy=2&dx=0&session=" + session))
                 .GET()
@@ -81,7 +87,8 @@ class MoveHandlerTest {
     }
 
     @Test
-    void validNoMoveWithSessionReturns200() throws Exception {
+    void validMoveReturns200() throws Exception {
+        // Valid movement should return new position
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/move?dy=0&dx=0&session=" + session))
                 .GET()
@@ -91,6 +98,7 @@ class MoveHandlerTest {
                 client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
+
         assertTrue(response.body().contains("\"y\":"));
         assertTrue(response.body().contains("\"x\":"));
     }
