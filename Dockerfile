@@ -7,6 +7,9 @@ COPY src/main/server/*.java src/main/server/map.txt ./
 RUN javac *.java
 
 FROM eclipse-temurin:18-jre
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /build/*.class /build/map.txt ./
 EXPOSE 8000
