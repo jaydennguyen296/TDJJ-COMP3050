@@ -1,3 +1,4 @@
 *.class
 /target
 .devcontainer/.env
+.terraform/
