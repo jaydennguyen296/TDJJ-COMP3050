@@ -1,6 +1,10 @@
+package comp3050;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TileMap {
@@ -9,7 +13,7 @@ public class TileMap {
     private final int width;
 
     public TileMap() throws IOException {
-        List<String> rows = Files.readAllLines(resolveMapPath())
+        List<String> rows = readMapLines()
             .stream()
             .filter(line -> !line.isBlank())
             .toList();
@@ -87,17 +91,20 @@ public class TileMap {
         return width;
     }
 
-    private static Path resolveMapPath() throws IOException {
-        Path direct = Path.of("map.txt");
-        if (Files.exists(direct)) {
-            return direct;
+    // map.txt is a Maven resource (src/main/resources/map.txt), loaded from the classpath
+    private static List<String> readMapLines() throws IOException {
+        try (InputStream in = TileMap.class.getResourceAsStream("/map.txt")) {
+            if (in == null) {
+                throw new IOException("Could not find map.txt on the classpath (expected src/main/resources/map.txt).");
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                List<String> lines = new ArrayList<>();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    lines.add(line);
+                }
+                return lines;
+            }
         }
-
-        Path inSourceTree = Path.of("src/main/server/map.txt");
-        if (Files.exists(inSourceTree)) {
-            return inSourceTree;
-        }
-
-        throw new IOException("Could not find map.txt in working directory or src/main/server/");
     }
 }

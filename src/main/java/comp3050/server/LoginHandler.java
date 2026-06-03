@@ -1,18 +1,22 @@
+package comp3050.server;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.net.URLDecoder;
+import java.util.HexFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class LoginHandler implements HttpHandler {
     private static final String VALID_NAME = System.getenv("APP_USER");
-    private static final String VALID_PASSWORD = System.getenv("APP_PASS");
     private static final String VALID_ENCRYPTED = resolveEncryptedPassword();
+
+    // Spec: names are ASCII letters and hyphens only, case-sensitive
     private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z-]+$");
     private static final Pattern JSON_FIELD_PATTERN =
         Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"([^\"]*)\"");
@@ -26,67 +30,47 @@ public class LoginHandler implements HttpHandler {
             return;
         }
 
+        // Spec: LOGIN must be a POST message
         if (!"POST".equalsIgnoreCase(he.getRequestMethod())) {
             sendResponse(he, 405, "{\"error\":\"method not allowed\"}");
             return;
         }
 
+        // Spec: the body is a textual JSON object with name and encpswrd
         String body = new String(he.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        String name = firstNonNull(
-            extractJsonField(body, "name"),
-            extractFormField(body, "name"),
-            extractFormField(body, "user")
-        );
-        String encpswrd = firstNonNull(
-            extractJsonField(body, "encpswrd"),
-            extractFormField(body, "encpswrd")
-        );
-        String plainPassword = firstNonNull(
-            extractJsonField(body, "password"),
-            extractFormField(body, "password"),
-            extractFormField(body, "pass")
-        );
+        String name = extractJsonField(body, "name");
+        String encpswrd = extractJsonField(body, "encpswrd");
 
-        if (name == null || !NAME_PATTERN.matcher(name).matches()
-            || (encpswrd == null && plainPassword == null)) {
+        // Spec: if either or both fields are missing, the request is invalid;
+        // a name with symbols, spaces, or numbers is likewise invalid
+        if (name == null || encpswrd == null || !NAME_PATTERN.matcher(name).matches()) {
             sendResponse(he, 400, "{\"error\":\"invalid request\"}");
             return;
         }
 
-        if (VALID_NAME == null || (VALID_ENCRYPTED == null && VALID_PASSWORD == null)) {
+        if (VALID_NAME == null || VALID_ENCRYPTED == null) {
             sendResponse(he, 500, "{\"error\":\"server credentials not configured\"}");
             return;
         }
 
-        String candidateEncrypted = encpswrd;
-        if (candidateEncrypted == null && plainPassword != null) {
-            candidateEncrypted = sha256Hex(name + ";" + plainPassword);
-        }
-
-        boolean passwordMatches = false;
-        if (candidateEncrypted != null && VALID_ENCRYPTED != null
-            && VALID_ENCRYPTED.equals(candidateEncrypted.toLowerCase())) {
-            passwordMatches = true;
-        }
-        if (!passwordMatches && plainPassword != null && VALID_PASSWORD != null
-            && VALID_PASSWORD.equals(plainPassword)) {
-            passwordMatches = true;
-        }
-
-        if (!VALID_NAME.equals(name) || !passwordMatches) {
+        // Spec: the server never decrypts; it compares the client's encpswrd
+        // with the encrypted value held on the server
+        if (!VALID_NAME.equals(name) || !constantTimeEquals(VALID_ENCRYPTED, encpswrd.toLowerCase())) {
             sendResponse(he, 401, "{\"error\":\"invalid credentials\"}");
             return;
         }
 
+        // Re-login replaces any existing session for this character (SessionManager)
         String token = SessionManager.getInstance().createSession(name);
         sendResponse(he, 200, "{\"session\":\"" + token + "\"}");
     }
 
     private void sendResponse(HttpExchange he, int status, String body) throws IOException {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         he.getResponseHeaders().set("Content-Type", "application/json");
-        he.sendResponseHeaders(status, body.getBytes().length);
+        he.sendResponseHeaders(status, bytes.length);
         OutputStream os = he.getResponseBody();
-        os.write(body.getBytes());
+        os.write(bytes);
         os.close();
     }
 
@@ -103,11 +87,9 @@ public class LoginHandler implements HttpHandler {
         }
     }
 
+    // Derived once at startup from APP_USER/APP_PASS, per the spec's
+    // SHA-256("name;password") scheme. The plaintext is never compared.
     private static String resolveEncryptedPassword() {
-        String precomputed = System.getenv("APP_ENCPSWRD");
-        if (precomputed != null && !precomputed.isBlank()) {
-            return precomputed.toLowerCase();
-        }
         String name = System.getenv("APP_USER");
         String password = System.getenv("APP_PASS");
         if (name == null || password == null) {
@@ -116,18 +98,22 @@ public class LoginHandler implements HttpHandler {
         return sha256Hex(name + ";" + password);
     }
 
+    // Spec example: sha256Hex("Baelin;Nice day for fishing.")
+    //   = "841eb70b9dd5019642751955afbb960a0f741129877db34ceb420a8fb4a9d1dd"
     private static String sha256Hex(String input) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder(hash.length * 2);
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 unavailable", ex);
         }
+    }
+
+    private static boolean constantTimeEquals(String a, String b) {
+        return MessageDigest.isEqual(
+            a.getBytes(StandardCharsets.UTF_8),
+            b.getBytes(StandardCharsets.UTF_8));
     }
 
     private String extractJsonField(String body, String key) {
@@ -138,28 +124,6 @@ public class LoginHandler implements HttpHandler {
         while (matcher.find()) {
             if (key.equals(matcher.group(1))) {
                 return matcher.group(2);
-            }
-        }
-        return null;
-    }
-
-    private String extractFormField(String body, String key) {
-        if (body == null || body.isBlank()) {
-            return null;
-        }
-        for (String param : body.split("&")) {
-            String[] pair = param.split("=", 2);
-            if (pair.length == 2 && key.equals(pair[0])) {
-                return URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
-            }
-        }
-        return null;
-    }
-
-    private String firstNonNull(String... values) {
-        for (String value : values) {
-            if (value != null) {
-                return value;
             }
         }
         return null;

@@ -1,5 +1,9 @@
+package comp3050.server;
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpServer;
+
+import comp3050.GameState;
+import comp3050.TileMap;
 
 public class Server {
 

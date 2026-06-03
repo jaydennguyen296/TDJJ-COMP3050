@@ -1,5 +1,7 @@
+package comp3050.server;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -13,6 +15,8 @@ public class LogoutHandler implements HttpHandler {
             return;
         }
 
+        // POST per the spec; GET also accepted because the frontend logs out
+        // via GET /logout?session=...
         String method = he.getRequestMethod();
         if (!"POST".equalsIgnoreCase(method) && !"GET".equalsIgnoreCase(method)) {
             sendResponse(he, 405, "{\"error\":\"method not allowed\"}");
@@ -61,10 +65,11 @@ public class LogoutHandler implements HttpHandler {
 
     private void sendResponse(HttpExchange he, int status, String body)
             throws IOException {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         he.getResponseHeaders().set("Content-Type", "application/json");
-        he.sendResponseHeaders(status, body.getBytes().length);
+        he.sendResponseHeaders(status, bytes.length);
         OutputStream os = he.getResponseBody();
-        os.write(body.getBytes());
+        os.write(bytes);
         os.close();
     }
 }

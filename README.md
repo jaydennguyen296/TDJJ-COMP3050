@@ -21,3 +21,16 @@ Basic project plan: <br />
 • Who will implement the /move endpoint?
 • Who will implement the /info endpoint?
 • Who will set up the project infrastructure (Docker, CI, testing)?
+
+1. Build (compile + run tests):
+cd ~/TDJJ-COMP3050
+mvn compile        # just compile
+mvn test           # compile + run tests (currently 0 JUnit tests)
+mvn clean compile  # if you want a fresh build from scratch
+
+2. Run the server (credentials come from env vars):
+export APP_USER=testuser
+export APP_PASS=testpass
+mvn compile exec:java
+
+The server starts on port 8000. Stop it with Ctrl+C.

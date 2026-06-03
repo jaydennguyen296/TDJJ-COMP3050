@@ -1,3 +1,4 @@
+package comp3050;
 public class GameState {
 
     private int playerY;

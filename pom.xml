@@ -26,8 +26,6 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/server</sourceDirectory>
-        <testSourceDirectory>src/main/test</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -48,8 +46,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.6.3</version>
                 <configuration>
-                    <mainClass>Server</mainClass>
-                    <workingDirectory>${project.basedir}/src/main/server</workingDirectory>
+                    <mainClass>comp3050.server.Server</mainClass>
                 </configuration>
             </plugin>
         </plugins>
