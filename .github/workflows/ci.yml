@@ -7,30 +7,27 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 18
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '18'
+          java-version: '17'
 
-      - name: Build and test
+      - name: Build and test using maven
         run: mvn test
 
       - name: Compile server
         run: mvn -q compile
 
-      - name: Build devcontainer Docker image
-        run: docker build -f .devcontainer/Dockerfile -t comp3050-assignment .
-
       - name: Build production Docker image
-        run: docker build -t comp3050-server .
+        run: docker build -t game-server:latest .
 
   scan-code:
     runs-on: ubuntu-latest
@@ -48,9 +45,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t my-app .
+        run: docker build -t game-server:latest .
 
-      - name: Scan Docker image with Trivy
+      - name: Install Trivy 
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/refs/tags/v0.69.3/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.3
-          trivy image --severity HIGH,CRITICAL --exit-code 1 my-app
+      - name: Run Trivy Scan 
+        run: |
+          trivy image --severity HIGH,CRITICAL --exit-code 1 game-server:latest
