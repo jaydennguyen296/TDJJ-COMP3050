@@ -2,3 +2,5 @@
 /target
 .devcontainer/.env
 .terraform/
+# Plaintext test-account passwords (hashes live in src/main/resources/players.txt)
+player-accounts.txt

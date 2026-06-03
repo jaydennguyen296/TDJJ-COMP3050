@@ -1,0 +1,14 @@
+# name;encpswrd;avatar
+# encpswrd = SHA-256 hex of "name;password" -- only hashes live here.
+# Plaintext passwords are in player-accounts.txt (gitignored).
+# avatar = the player digit 0-9 drawn by the client (assets/player<digit>.png).
+admin;1245481893156c71a760ef314a0dd06d2245dda7114479f6380513054d0ea1af;0
+willow;6e4f6c42ce8af8b291749cdc5ef3908d7828981ab12f715a443a6850ca7f92ee;1
+Baradun;ec33800a413520163bb734801f89e5eb01bd7aef3e8a45e76c8d229a0add3377;2
+Baelin;2adb2b14999bc774d6dee7ca3a3fd42ebf9f7c7b83878cf7ba6b6a9218fe3d23;3
+NPC-Man;4adf7a42886a72ee3da02ddde61bc0aa3772cb92e5992edd6b4e20cdfccd1cff;4
+Mildred;103b1285597a4886f0a71245e599ab0db6610c2f5de4e7c26422ba64492e037d;5
+Torvald;9319160e4ea297257ae74a402443a4af37549319fa93639f74c6d945eb1fee33;6
+Sigrid;40f9b2ed5c60e7254b2bc1cacd6d8d0240324e6b7c769ee45e90f7414952f55d;7
+Eowyn;a80d3e3b03993c52ea3041b68fc1e730f5dfac4ec18578df88a39d7a324cae84;8
+Drust;e601d40c58023864787c13aed706345eec062974786bdaa9eb0d0d1b13177da1;9

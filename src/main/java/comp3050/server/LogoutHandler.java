@@ -26,6 +26,12 @@ public class LogoutHandler implements HttpHandler {
         String token = extractToken(he);
 
         if (SessionManager.getInstance().invalidate(token)) {
+            // Design choice: RETAIN the player's PlayerState (position +
+            // inventory + avatar) in WorldRegistry so a returning login
+            // restores it. Only the session token is revoked here.
+            // Alternative (NOT chosen): drop the player's items at their
+            // (y,x) and forget the record; SessionManager.getUser(token)
+            // before invalidating is the hook point for that policy.
             sendResponse(he, 200, "{\"message\":\"logged out\"}");
         } else {
             sendResponse(he, 401, "{\"error\":\"invalid token\"}");
