@@ -7,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import io.prometheus.client.Histogram;
+
 import comp3050.TileMap;
 
 public class MoveHandler implements HttpHandler {
@@ -19,6 +21,18 @@ public class MoveHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
+        // Counted up front so every request (incl. 204 rejections, 401s,
+        // OPTIONS preflights) is observed, not just the success path.
+        Server.GAME_REQUESTS.labels("/move").inc();
+        Histogram.Timer timer = Server.GAME_LATENCY.labels("/move").startTimer();
+        try {
+            doHandle(he);
+        } finally {
+            timer.observeDuration();
+        }
+    }
+
+    private void doHandle(HttpExchange he) throws IOException {
         setCorsHeaders(he);
         he.getResponseHeaders().set("Connection", "close");
 

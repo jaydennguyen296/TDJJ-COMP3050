@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import io.prometheus.client.Histogram;
+
 import comp3050.TileMap;
 
 public class InfoHandler implements HttpHandler {
@@ -32,6 +34,18 @@ public class InfoHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
+        // Counted up front so every request (incl. the frequent 204
+        // nothing-changed replies) is observed, not just the success path.
+        Server.GAME_REQUESTS.labels("/info").inc();
+        Histogram.Timer timer = Server.GAME_LATENCY.labels("/info").startTimer();
+        try {
+            doHandle(he);
+        } finally {
+            timer.observeDuration();
+        }
+    }
+
+    private void doHandle(HttpExchange he) throws IOException {
         setCorsHeaders(he);
         he.getResponseHeaders().set("Connection", "close");
 

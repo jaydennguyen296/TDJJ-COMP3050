@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import io.prometheus.client.Histogram;
+
 import comp3050.TileMap;
 
 public class LoginHandler implements HttpHandler {
@@ -27,6 +29,18 @@ public class LoginHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
+        // Counted up front so every attempt (incl. 400/401 failures, the
+        // brute-force signal) is observed, not just successful logins.
+        Server.GAME_REQUESTS.labels("/login").inc();
+        Histogram.Timer timer = Server.GAME_LATENCY.labels("/login").startTimer();
+        try {
+            doHandle(he);
+        } finally {
+            timer.observeDuration();
+        }
+    }
+
+    private void doHandle(HttpExchange he) throws IOException {
         setCorsHeaders(he);
         if ("OPTIONS".equalsIgnoreCase(he.getRequestMethod())) {
             he.sendResponseHeaders(204, -1);
