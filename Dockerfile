@@ -9,7 +9,7 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:17-jre
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /usr/bin/pebble
 WORKDIR /app
 COPY --from=build /app/target/classes ./target/classes
 EXPOSE 8000
