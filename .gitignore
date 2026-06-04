@@ -1,6 +1,5 @@
 *.class
 /target
-.devcontainer/.env
 **/.terraform/
 *.tfstate
 *.tfstate.*
@@ -8,5 +7,8 @@
 *.tfvars.json
 crash.log
 crash.*.log
+.env
+inventory.ini
+*.pem
 
-player-accounts.txt
+players.txt
