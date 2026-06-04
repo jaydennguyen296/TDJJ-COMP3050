@@ -3,6 +3,7 @@ package comp3050.server;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,6 +15,9 @@ import io.prometheus.client.Histogram;
 import comp3050.TileMap;
 
 public class LoginHandler implements HttpHandler {
+
+    private static final Logger logger = Logger.getLogger(LoginHandler.class.getName());
+
     // Spec: names are ASCII letters and hyphens only, case-sensitive
     private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z-]+$");
     private static final Pattern JSON_FIELD_PATTERN =
@@ -33,13 +37,25 @@ public class LoginHandler implements HttpHandler {
         // the brute-force signal) is observed along with its response
         // status; an exception before a response is sent counts as a 500.
         Histogram.Timer timer = Server.GAME_LATENCY.labels("/login").startTimer();
+        String error = null;
         try {
             doHandle(he);
+        } catch (Exception e) {
+            error = e.toString();
+            throw e;
         } finally {
             timer.observeDuration();
             int code = he.getResponseCode(); // -1 if no response was sent
-            Server.GAME_REQUESTS.labels("/login",
-                    code == -1 ? "500" : String.valueOf(code)).inc();
+            String status = code == -1 ? "500" : String.valueOf(code);
+            Server.GAME_REQUESTS.labels("/login", status).inc();
+            // Structured (logfmt) request log so Loki can narrow failures
+            // down per endpoint: {job="docker"} | logfmt | status="500"
+            if (error != null || code >= 500) {
+                logger.severe("endpoint=/login status=" + status
+                        + (error == null ? "" : " error=" + error));
+            } else {
+                logger.info("endpoint=/login status=" + status);
+            }
         }
     }
 

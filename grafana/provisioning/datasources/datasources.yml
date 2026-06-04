@@ -1,0 +1,19 @@
+# Data sources Grafana configures itself with at every startup, so a
+# recreated container comes up wired without any manual clicking.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # uid is pinned because dashboard.json references its panels' data
+    # source by this exact uid.
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100

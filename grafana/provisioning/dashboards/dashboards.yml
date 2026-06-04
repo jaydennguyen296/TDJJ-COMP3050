@@ -1,0 +1,12 @@
+# Loads every .json dashboard found in the mounted dashboards folder
+# (the repo's grafana/ directory) at startup.
+apiVersion: 1
+
+providers:
+  - name: default
+    type: file
+    # Let dashboards be edited in the UI; note UI edits still live only in
+    # the container DB -- export back to dashboard.json to keep them.
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

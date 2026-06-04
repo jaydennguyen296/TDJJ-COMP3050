@@ -3,8 +3,13 @@ services:
     image: ${DOCKERHUB_USERNAME:-tomhann}/game-server:latest
     env_file:
       - .env
+    environment:
+      # Cap the JVM heap: the default (25% of system RAM) grabs far more
+      # than the game needs and starves the monitoring containers.
+      - JAVA_TOOL_OPTIONS=-Xmx128m
     expose:
       - "8000"
+    mem_limit: 256m
 
   nginx:
     image: nginx:alpine
@@ -14,6 +19,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - server
+    mem_limit: 32m
 
   prometheus:
     image: prom/prometheus:latest
@@ -21,6 +27,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    mem_limit: 256m
 
   grafana:
     image: grafana/grafana:latest
@@ -28,10 +35,15 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana:/var/lib/grafana/dashboards
+    mem_limit: 192m
 
   loki:
     image: grafana/loki:latest
     command: -config.file=/etc/loki/local-config.yaml
+    mem_limit: 192m
 
   promtail:
     image: grafana/promtail:latest
@@ -42,3 +54,4 @@ services:
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
+    mem_limit: 64m

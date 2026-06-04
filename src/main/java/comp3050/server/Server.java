@@ -27,6 +27,12 @@ public class Server {
             .labelNames("endpoint").register();
 
     public static void main(String[] args) throws Exception {
+        // Single-line java.util.logging output (the default SimpleFormatter
+        // emits two lines per record, which Loki ingests as two separate log
+        // entries). Must be set before the first Logger is created.
+        System.setProperty("java.util.logging.SimpleFormatter.format",
+                "%1$tF %1$tT level=%4$s logger=%3$s %5$s%n");
+
         TileMap tileMap = new TileMap();
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
         server.createContext("/login", new LoginHandler(tileMap));

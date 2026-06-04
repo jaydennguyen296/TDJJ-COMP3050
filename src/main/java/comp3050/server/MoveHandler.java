@@ -3,6 +3,7 @@ package comp3050.server;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -12,6 +13,8 @@ import io.prometheus.client.Histogram;
 import comp3050.TileMap;
 
 public class MoveHandler implements HttpHandler {
+
+    private static final Logger logger = Logger.getLogger(MoveHandler.class.getName());
 
     private final TileMap tileMap;
 
@@ -25,13 +28,25 @@ public class MoveHandler implements HttpHandler {
         // 401s, OPTIONS preflights) is observed along with its response
         // status; an exception before a response is sent counts as a 500.
         Histogram.Timer timer = Server.GAME_LATENCY.labels("/move").startTimer();
+        String error = null;
         try {
             doHandle(he);
+        } catch (Exception e) {
+            error = e.toString();
+            throw e;
         } finally {
             timer.observeDuration();
             int code = he.getResponseCode(); // -1 if no response was sent
-            Server.GAME_REQUESTS.labels("/move",
-                    code == -1 ? "500" : String.valueOf(code)).inc();
+            String status = code == -1 ? "500" : String.valueOf(code);
+            Server.GAME_REQUESTS.labels("/move", status).inc();
+            // Structured (logfmt) request log so Loki can narrow failures
+            // down per endpoint: {job="docker"} | logfmt | status="500"
+            if (error != null || code >= 500) {
+                logger.severe("endpoint=/move status=" + status
+                        + (error == null ? "" : " error=" + error));
+            } else {
+                logger.info("endpoint=/move status=" + status);
+            }
         }
     }
 
