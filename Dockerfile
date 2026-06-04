@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn package -DskipTests
 
 FROM eclipse-temurin:17-jre
-RUN apt-get update \
+RUN apt-get update -o Acquire::Retries=3 \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /usr/bin/pebble
 WORKDIR /app
