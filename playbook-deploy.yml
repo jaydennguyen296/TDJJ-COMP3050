@@ -53,6 +53,11 @@
       args:
         chdir: "{{ deploy_dir }}"
 
+    - name: Remove old standalone app container
+      shell: |
+        docker stop app || true
+        docker rm app || true
+
     - name: Start the stack
       shell: docker compose up -d
       args:
