@@ -7,17 +7,14 @@ import java.nio.charset.StandardCharsets;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import comp3050.GameState;
 import comp3050.TileMap;
 
 public class MoveHandler implements HttpHandler {
 
     private final TileMap tileMap;
-    private final GameState gameState;
 
-    public MoveHandler(TileMap tileMap, GameState gameState) {
+    public MoveHandler(TileMap tileMap) {
         this.tileMap = tileMap;
-        this.gameState = gameState;
     }
 
     @Override
@@ -32,10 +29,12 @@ public class MoveHandler implements HttpHandler {
         }
 
         String token = extractToken(he);
-        if (SessionManager.getInstance().getUser(token) == null) {
+        String username = SessionManager.getInstance().getUser(token);
+        if (username == null) {
             sendResponse(he, 401, "{\"error\":\"not authenticated\"}");
             return;
         }
+        PlayerState player = WorldRegistry.getInstance().getOrCreate(username);
 
         Integer dyParam = queryParam(he, "dy");
         Integer dxParam = queryParam(he, "dx");
@@ -49,9 +48,9 @@ public class MoveHandler implements HttpHandler {
             return;
         }
 
-        // Target computed from the server's own position, x wraps like the map
-        int newY = gameState.getPlayerY() + dy;
-        int newX = tileMap.wrapX(gameState.getPlayerX() + dx);
+        // Target computed from THIS player's server-side position, x wraps like the map
+        int newY = player.getY() + dy;
+        int newX = tileMap.wrapX(player.getX() + dx);
 
         // Server-side collision check: blocked or out-of-bounds tiles reject the move
         if (tileMap.isBlocking(newY, newX)) {
@@ -60,8 +59,14 @@ public class MoveHandler implements HttpHandler {
             return;
         }
 
-        gameState.setPlayerPosition(newY, newX);
-        sendResponse(he, 200, "{\"y\":" + newY + ",\"x\":" + newX + "}");
+        // Atomically claim the cell; fails (204) if another player already holds it.
+        if (!WorldRegistry.getInstance().tryMove(player, newY, newX)) {
+            he.sendResponseHeaders(204, -1);
+            he.close();
+            return;
+        }
+
+        sendResponse(he, 200, "{\"y\":" + player.getY() + ",\"x\":" + player.getX() + "}");
     }
 
     private void setCorsHeaders(HttpExchange exchange) {

@@ -9,14 +9,11 @@ import com.sun.net.httpserver.HttpHandler;
 
 import comp3050.TileMap;
 
-public class InfoHandler implements HttpHandler {
-
-    // Player sees an 11x11 window: VIEW_RADIUS tiles in each direction
-    private static final int VIEW_RADIUS = 5;
+public class UseHandler implements HttpHandler {
 
     private final TileMap tileMap;
 
-    public InfoHandler(TileMap tileMap) {
+    public UseHandler(TileMap tileMap) {
         this.tileMap = tileMap;
     }
 
@@ -32,73 +29,43 @@ public class InfoHandler implements HttpHandler {
         }
 
         String token = extractToken(he);
-        String user = SessionManager.getInstance().getUser(token);
-
-        if (user == null) {
+        String username = SessionManager.getInstance().getUser(token);
+        if (username == null) {
             sendResponse(he, 401, "{\"error\":\"not authenticated\"}");
             return;
         }
+        PlayerState player = WorldRegistry.getInstance().getOrCreate(username);
 
-        // Centre the window on THIS player's live position.
-        PlayerState self = WorldRegistry.getInstance().getOrCreate(user);
-        int playerY = self.getY();
-        int playerX = self.getX();
+        Integer dyParam = queryParam(he, "dy");
+        Integer dxParam = queryParam(he, "dx");
+        int dy = dyParam == null ? 0 : dyParam;
+        int dx = dxParam == null ? 0 : dxParam;
 
-        // The client reports where it believes the player is; if that is
-        // missing or stale, reply 204 (no content) so it knows to resync.
-        Integer requestY = queryParam(he, "y");
-        Integer requestX = queryParam(he, "x");
-        if (requestY == null || requestX == null
-                || requestY.intValue() != playerY
-                || requestX.intValue() != playerX) {
+        // Spec: USE targets a map element adjacent to OR at the character's
+        // location. Same rule as MOVE -- no diagonals, at most one space --
+        // except (0,0) (the character's own cell) is also valid. The client
+        // may send clicks from further away; those are invalid -> 204.
+        if ((dy != 0 && dx != 0) || Math.abs(dy) > 1 || Math.abs(dx) > 1) {
             he.sendResponseHeaders(204, -1);
             he.close();
             return;
         }
 
-        int top = Math.max(0, playerY - VIEW_RADIUS);
-        int left = tileMap.wrapX(playerX - VIEW_RADIUS);
-        int bottom = Math.min(tileMap.getHeight() - 1, playerY + VIEW_RADIUS);
-        int right = tileMap.wrapX(playerX + VIEW_RADIUS);
+        // Target computed from THIS player's server-side position, x wraps like the map
+        int targetY = player.getY() + dy;
+        int targetX = tileMap.wrapX(player.getX() + dx);
 
-        StringBuilder json = new StringBuilder();
-        json.append("{");
-        // Names are ASCII letters and hyphens only (spec), so no JSON escaping needed
-        json.append("\"user\":\"").append(user).append("\",");
-        json.append("\"y\":").append(playerY).append(",");
-        json.append("\"x\":").append(playerX).append(",");
-        json.append("\"top\":").append(top).append(",");
-        json.append("\"left\":").append(left).append(",");
-        json.append("\"bottom\":").append(bottom).append(",");
-        json.append("\"right\":").append(right).append(",");
-        json.append("\"info\":[");
-
-        for (int y = top; y <= bottom; y++) {
-            if (y > top) {
-                json.append(",");
-            }
-            json.append("[");
-            for (int col = 0; col <= 2 * VIEW_RADIUS; col++) {
-                if (col > 0) {
-                    json.append(",");
-                }
-                int x = tileMap.wrapX(playerX - VIEW_RADIUS + col);
-                String cell = tileMap.getLocationString(y, x);
-                // The client draws players from the map data, so any cell with
-                // a player on it carries their avatar digit (0-9), drawn LAST.
-                // Live digits stay in WorldRegistry, not the TileMap overlay;
-                // they are appended at serialise time only.
-                PlayerState occupant = WorldRegistry.getInstance().occupantAt(y, x);
-                if (occupant != null) {
-                    cell = cell + occupant.getAvatar();
-                }
-                json.append("\"").append(cell).append("\"");
-            }
-            json.append("]");
+        // 204 if there is nothing usable (no door) at the target cell.
+        if (!tileMap.isUsableDoor(targetY, targetX)) {
+            he.sendResponseHeaders(204, -1);
+            he.close();
+            return;
         }
 
-        json.append("]}");
-        sendResponse(he, 200, json.toString());
+        // Toggle the door: closed 'D' <-> open 'd'; respond with the new state.
+        char newState = tileMap.toggleDoor(targetY, targetX);
+        sendResponse(he, 200,
+            "{\"y\":" + targetY + ",\"x\":" + targetX + ",\"door\":\"" + newState + "\"}");
     }
 
     private void setCorsHeaders(HttpExchange exchange) {
@@ -144,7 +111,7 @@ public class InfoHandler implements HttpHandler {
                 try {
                     return Integer.valueOf(pair[1]);
                 } catch (NumberFormatException e) {
-                    return null; // non-numeric counts as missing -> 204
+                    return null; // non-numeric counts as missing -> treated as 0
                 }
             }
         }

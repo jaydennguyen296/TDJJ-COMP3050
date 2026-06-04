@@ -16,7 +16,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import comp3050.TileMap;
 
-public class MoveHandlerTest {
+public class UseHandlerTest {
 
     private HttpServer server;
     private int port;
@@ -26,7 +26,7 @@ public class MoveHandlerTest {
         TileMap tileMap = new TileMap();
 
         server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/move", new MoveHandler(tileMap));
+        server.createContext("/use", new UseHandler(tileMap));
         server.start();
 
         port = server.getAddress().getPort();
@@ -38,32 +38,32 @@ public class MoveHandlerTest {
     }
 
     @Test
-    void testMoveHandlerCanBeCreated() throws Exception {
-        // checks MoveHandler object can be created
+    void testUseHandlerCanBeCreated() throws Exception {
+        // checks UseHandler object can be created
 
         TileMap tileMap = new TileMap();
-        MoveHandler handler = new MoveHandler(tileMap);
+        UseHandler handler = new UseHandler(tileMap);
 
         assertNotNull(handler);
     }
 
     @Test
-    void testMoveWithoutTokenReturns401() throws IOException {
-        // checks user cannot move without login token
+    void testUseWithoutTokenReturns401() throws IOException {
+        // checks user cannot use objects without login token
 
-        URL url = new URL("http://localhost:" + port + "/move?dy=0&dx=1");
+        URL url = new URL("http://localhost:" + port + "/use");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
         assertEquals(401, conn.getResponseCode());
     }
 
     @Test
-    void testMoveInvalidDiagonalReturns204() throws IOException {
-        // checks diagonal move is not allowed
+    void testUseDiagonalReturns204() throws IOException {
+        // checks diagonal use is not allowed
 
         String token = SessionManager.getInstance().createSession("admin");
 
-        URL url = new URL("http://localhost:" + port + "/move?dy=1&dx=1");
+        URL url = new URL("http://localhost:" + port + "/use?dy=1&dx=1");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Bearer " + token);
 
@@ -71,12 +71,12 @@ public class MoveHandlerTest {
     }
 
     @Test
-    void testMoveTooFarReturns204() throws IOException {
-        // checks moving more than one tile is not allowed
+    void testUseTooFarReturns204() throws IOException {
+        // checks using more than one tile away is not allowed
 
         String token = SessionManager.getInstance().createSession("admin");
 
-        URL url = new URL("http://localhost:" + port + "/move?dy=0&dx=2");
+        URL url = new URL("http://localhost:" + port + "/use?dy=0&dx=2");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Bearer " + token);
 
@@ -84,13 +84,14 @@ public class MoveHandlerTest {
     }
 
     @Test
-    void testMoveValidRequestReturns200Or204() throws IOException {
-        // checks valid one-tile move is processed
-        // returns 200 if tile is walkable, or 204 if blocked by map/player
+    void testUseCurrentCellReturns204or200() throws IOException {
+        // checks use can target current cell
+        // 200 if usable door exists
+        // 204 if no door exists
 
         String token = SessionManager.getInstance().createSession("admin");
 
-        URL url = new URL("http://localhost:" + port + "/move?dy=0&dx=1");
+        URL url = new URL("http://localhost:" + port + "/use?dy=0&dx=0");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Bearer " + token);
 
