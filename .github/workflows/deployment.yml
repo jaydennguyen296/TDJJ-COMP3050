@@ -52,5 +52,7 @@ jobs:
               "${{ secrets.APP_USER }}" "${{ secrets.APP_PASS }}" > .env
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             docker compose pull
-            docker compose up -d
+            docker stop app || true
+            docker rm app || true
+            docker compose up -d --remove-orphans
               

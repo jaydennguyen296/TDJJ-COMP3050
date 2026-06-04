@@ -46,6 +46,7 @@
         repo: "{{ repo_url }}"
         dest: "{{ deploy_dir }}"
         version: main
+        force: yes
       become_user: ec2-user
 
     - name: Pull all container images
