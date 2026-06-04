@@ -1,6 +1,6 @@
 services:
   server:
-    image: game-server:latest
+    image: ${DOCKERHUB_USERNAME:-game-server}/game-server:latest
     env_file:
       - .env
     build: .

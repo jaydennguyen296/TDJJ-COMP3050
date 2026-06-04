@@ -46,13 +46,11 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             set -e
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/game-server:latest
-            docker stop app || true
-            docker rm app || true
-            docker run -d --name app \
-              -p 80:8000 \
-              -p 8000:8000 \
-              -e APP_USER=${{ secrets.APP_USER }} \
-              -e APP_PASS=${{ secrets.APP_PASS }} \
-              ${{ secrets.DOCKERHUB_USERNAME }}/game-server:latest
+            cd /opt/project
+            git pull origin main
+            printf 'APP_USER=%s\nAPP_PASS=%s\n' \
+              "${{ secrets.APP_USER }}" "${{ secrets.APP_PASS }}" > .env
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            docker compose pull
+            docker compose up -d
               
