@@ -1,0 +1,59 @@
+---
+- name: Deploy application stack to EC2
+  hosts: ec2
+  become: yes
+  vars:
+    repo_url: https://github.com/stalebiscuit/TDJJ-COMP3050.git
+    deploy_dir: /opt/project
+  tasks:
+    - name: Install Docker and Git
+      dnf:
+        name:
+          - docker
+          - git
+        state: present
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Compose plugin
+      shell: |
+        mkdir -p /usr/local/lib/docker/cli-plugins
+        curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+          -o /usr/local/lib/docker/cli-plugins/docker-compose
+        chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      args:
+        creates: /usr/local/lib/docker/cli-plugins/docker-compose
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Create deploy directory
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        owner: ec2-user
+        mode: '0755'
+
+    - name: Clone project repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ deploy_dir }}"
+        version: main
+      become_user: ec2-user
+
+    - name: Pull all container images
+      shell: docker compose pull
+      args:
+        chdir: "{{ deploy_dir }}"
+
+    - name: Start the stack
+      shell: docker compose up -d
+      args:
+        chdir: "{{ deploy_dir }}"
