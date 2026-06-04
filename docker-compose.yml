@@ -1,9 +1,8 @@
 services:
   server:
-    image: ${DOCKERHUB_USERNAME:-game-server}/game-server:latest
+    image: ${DOCKERHUB_USERNAME:-tomhann}/game-server:latest
     env_file:
       - .env
-    build: .
     expose:
       - "8000"
 
