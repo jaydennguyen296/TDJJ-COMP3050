@@ -21,14 +21,17 @@ public class MoveHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
-        // Counted up front so every request (incl. 204 rejections, 401s,
-        // OPTIONS preflights) is observed, not just the success path.
-        Server.GAME_REQUESTS.labels("/move").inc();
+        // Counted in the finally so every request (incl. 204 rejections,
+        // 401s, OPTIONS preflights) is observed along with its response
+        // status; an exception before a response is sent counts as a 500.
         Histogram.Timer timer = Server.GAME_LATENCY.labels("/move").startTimer();
         try {
             doHandle(he);
         } finally {
             timer.observeDuration();
+            int code = he.getResponseCode(); // -1 if no response was sent
+            Server.GAME_REQUESTS.labels("/move",
+                    code == -1 ? "500" : String.valueOf(code)).inc();
         }
     }
 

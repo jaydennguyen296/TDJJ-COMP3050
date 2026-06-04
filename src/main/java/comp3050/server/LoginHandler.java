@@ -29,14 +29,17 @@ public class LoginHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
-        // Counted up front so every attempt (incl. 400/401 failures, the
-        // brute-force signal) is observed, not just successful logins.
-        Server.GAME_REQUESTS.labels("/login").inc();
+        // Counted in the finally so every attempt (incl. 400/401 failures,
+        // the brute-force signal) is observed along with its response
+        // status; an exception before a response is sent counts as a 500.
         Histogram.Timer timer = Server.GAME_LATENCY.labels("/login").startTimer();
         try {
             doHandle(he);
         } finally {
             timer.observeDuration();
+            int code = he.getResponseCode(); // -1 if no response was sent
+            Server.GAME_REQUESTS.labels("/login",
+                    code == -1 ? "500" : String.valueOf(code)).inc();
         }
     }
 

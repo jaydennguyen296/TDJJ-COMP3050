@@ -34,14 +34,17 @@ public class InfoHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange he) throws IOException {
-        // Counted up front so every request (incl. the frequent 204
-        // nothing-changed replies) is observed, not just the success path.
-        Server.GAME_REQUESTS.labels("/info").inc();
+        // Counted in the finally so every request (incl. the frequent 204
+        // nothing-changed replies) is observed along with its response
+        // status; an exception before a response is sent counts as a 500.
         Histogram.Timer timer = Server.GAME_LATENCY.labels("/info").startTimer();
         try {
             doHandle(he);
         } finally {
             timer.observeDuration();
+            int code = he.getResponseCode(); // -1 if no response was sent
+            Server.GAME_REQUESTS.labels("/info",
+                    code == -1 ? "500" : String.valueOf(code)).inc();
         }
     }
 

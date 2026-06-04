@@ -20,7 +20,7 @@ public class Server {
     // into these with their own endpoint label.
     static final Counter GAME_REQUESTS = Counter.build()
             .name("game_requests_total").help("Total game requests")
-            .labelNames("endpoint").register();
+            .labelNames("endpoint", "status").register();
 
     static final Histogram GAME_LATENCY = Histogram.build()
             .name("game_request_duration_seconds").help("Game request latency")
