@@ -3,6 +3,8 @@ package comp3050.server;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import comp3050.TileMap;
+
 // Live per-player state registry (username -> PlayerState), distinct from the
 // credential PlayerRegistry. Holds avatar-digit assignment and an atomic
 // tryMove so only one avatar can hold a cell at a time.
@@ -21,11 +23,32 @@ public class WorldRegistry {
         return INSTANCE;
     }
 
-    // First login: spawn + assign avatar. Returning login: restore the existing
-    // record — position and inventory survive logout by design (see LogoutHandler).
+    // Login: spawn + assign avatar. Characters do not persist across sessions
+    // (see retire below), so creation always places them at the spawn point —
+    // which is also where the supplied client boots its own position belief,
+    // so a fresh login can never start desynced.
     public PlayerState getOrCreate(String username) {
         return players.computeIfAbsent(username,
             u -> new PlayerState(u, assignAvatar(u), SPAWN_Y, SPAWN_X));
+    }
+
+    // Design choice (spec p.13): on logout, "place all items held by a
+    // character onto the ground and then forget the user information
+    // entirely." Items drop at the cell the character stood on (they may
+    // stack with an item already there; TAKE unstacks them one at a time).
+    // Also invoked on login to clear any record left by an unclean exit
+    // (crash, second browser session) before the fresh character is created.
+    public void retire(String username, TileMap tileMap) {
+        if (username == null) {
+            return;
+        }
+        PlayerState player = players.remove(username);
+        if (player == null) {
+            return;
+        }
+        for (char item : player.getInventory()) {
+            tileMap.setItem(player.getY(), player.getX(), item);
+        }
     }
 
     public PlayerState get(String username) {

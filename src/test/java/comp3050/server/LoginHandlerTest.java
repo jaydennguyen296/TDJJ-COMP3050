@@ -11,6 +11,8 @@ import java.net.http.HttpResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import comp3050.TileMap;
+
 class LoginHandlerTest {
 
     private static HttpServer server;
@@ -21,7 +23,7 @@ class LoginHandlerTest {
     static void setup() throws Exception {
         // Starts a small test server only for /login
         server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/login", new LoginHandler());
+        server.createContext("/login", new LoginHandler(new TileMap()));
         server.start();
 
         baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
@@ -97,6 +99,32 @@ class LoginHandlerTest {
                 client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(401, response.statusCode());
+    }
+
+    @Test
+    void loginResetsCharacterToSpawn() throws Exception {
+        // v3 design choice (spec p.13): characters do not persist across
+        // sessions — a fresh login always starts back at the spawn point,
+        // even if a stale record was left behind without a clean logout
+        PlayerState stale = WorldRegistry.getInstance().getOrCreate("admin");
+        stale.setPosition(9, 9);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/login"))
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"name\":\"admin\",\"encpswrd\":\"1245481893156c71a760ef314a0dd06d2245dda7114479f6380513054d0ea1af\"}"
+                ))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        PlayerState fresh = WorldRegistry.getInstance().getOrCreate("admin");
+        assertNotSame(stale, fresh);
+        assertEquals(5, fresh.getY());
+        assertEquals(5, fresh.getX());
     }
 
     @Test

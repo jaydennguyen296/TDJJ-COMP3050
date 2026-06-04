@@ -9,11 +9,21 @@ import java.util.regex.Pattern;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import comp3050.TileMap;
+
 public class LoginHandler implements HttpHandler {
     // Spec: names are ASCII letters and hyphens only, case-sensitive
     private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z-]+$");
     private static final Pattern JSON_FIELD_PATTERN =
         Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"([^\"]*)\"");
+
+    // Needed to drop a stale character's items on the ground (retire) when a
+    // login finds a record left behind without a clean logout.
+    private final TileMap tileMap;
+
+    public LoginHandler(TileMap tileMap) {
+        this.tileMap = tileMap;
+    }
 
     @Override
     public void handle(HttpExchange he) throws IOException {
@@ -56,9 +66,13 @@ public class LoginHandler implements HttpHandler {
             return;
         }
 
-        // Re-login replaces any existing session for this character (SessionManager);
-        // the live world record is created on first login and restored on return
+        // Re-login replaces any existing session for this character (SessionManager).
+        // Characters do NOT persist across sessions (spec p.13 design choice):
+        // any record left behind without a clean logout (crash, second browser)
+        // is retired first — items dropped where it stood, record forgotten —
+        // then a fresh character spawns at the start.
         String token = SessionManager.getInstance().createSession(name, player);
+        WorldRegistry.getInstance().retire(name, tileMap);
         WorldRegistry.getInstance().getOrCreate(name);
         sendResponse(he, 200, "{\"session\":\"" + token + "\"}");
     }

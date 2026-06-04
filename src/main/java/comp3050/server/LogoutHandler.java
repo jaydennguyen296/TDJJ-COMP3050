@@ -5,7 +5,17 @@ import java.nio.charset.StandardCharsets;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import comp3050.TileMap;
+
 public class LogoutHandler implements HttpHandler {
+
+    // Needed to drop the character's items on the ground at logout (retire).
+    private final TileMap tileMap;
+
+    public LogoutHandler(TileMap tileMap) {
+        this.tileMap = tileMap;
+    }
+
     @Override
     public void handle(HttpExchange he) throws IOException {
         setCorsHeaders(he);
@@ -24,14 +34,17 @@ public class LogoutHandler implements HttpHandler {
         }
 
         String token = extractToken(he);
+        // Resolve the character BEFORE invalidating revokes the token.
+        String user = SessionManager.getInstance().getUser(token);
 
         if (SessionManager.getInstance().invalidate(token)) {
-            // Design choice: RETAIN the player's PlayerState (position +
-            // inventory + avatar) in WorldRegistry so a returning login
-            // restores it. Only the session token is revoked here.
-            // Alternative (NOT chosen): drop the player's items at their
-            // (y,x) and forget the record; SessionManager.getUser(token)
-            // before invalidating is the hook point for that policy.
+            // Design choice (spec p.13): "place all items held by a character
+            // onto the ground and then forget the user information entirely."
+            // The next login recreates the character at the spawn point —
+            // which is where the supplied client boots its own position
+            // belief, so a fresh login can never start desynced from the
+            // server (the cause of the blank-avatar / endless-204 bug).
+            WorldRegistry.getInstance().retire(user, tileMap);
             sendResponse(he, 200, "{\"message\":\"logged out\"}");
         } else {
             sendResponse(he, 401, "{\"error\":\"invalid token\"}");

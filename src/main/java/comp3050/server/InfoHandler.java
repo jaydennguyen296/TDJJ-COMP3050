@@ -3,6 +3,7 @@ package comp3050.server;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -15,6 +16,15 @@ public class InfoHandler implements HttpHandler {
     private static final int VIEW_RADIUS = 5;
 
     private final TileMap tileMap;
+
+    // Last 200 body sent per SESSION TOKEN. If a repeat INFO request would
+    // produce an identical body (nothing changed in their window), reply 204
+    // instead of re-sending the same JSON -- spec-sanctioned bandwidth
+    // optimisation ("the last identical request from the same client").
+    // Keyed by token, NOT username: a fresh login (new token) is a new client
+    // with no map data yet, so it must always receive its first 200 body --
+    // keying by username starved second browser sessions into blank maps.
+    private final ConcurrentHashMap<String, String> lastBody = new ConcurrentHashMap<>();
 
     public InfoHandler(TileMap tileMap) {
         this.tileMap = tileMap;
@@ -44,17 +54,24 @@ public class InfoHandler implements HttpHandler {
         int playerY = self.getY();
         int playerX = self.getX();
 
-        // The client reports where it believes the player is; if that is
-        // missing or stale, reply 204 (no content) so it knows to resync.
+        // The client reports where it believes the player is. A missing or
+        // malformed y/x is an invalid request -> 204 (spec). But a PRESENT,
+        // mismatching y/x means the client has desynced from the server (a
+        // lost MOVE response, blocking by another player, or a re-login it
+        // didn't initiate). Replying 204 there is unrecoverable: the client
+        // never receives fresh map data, so its avatar vanishes and it loops
+        // on 204s forever. Instead always answer with the AUTHORITATIVE
+        // window, centred on the server's position and carrying the real
+        // y/x, so a stale client redraws itself back into sync.
         Integer requestY = queryParam(he, "y");
         Integer requestX = queryParam(he, "x");
-        if (requestY == null || requestX == null
-                || requestY.intValue() != playerY
-                || requestX.intValue() != playerX) {
+        if (requestY == null || requestX == null) {
             he.sendResponseHeaders(204, -1);
             he.close();
             return;
         }
+        boolean clientStale = requestY.intValue() != playerY
+                || requestX.intValue() != playerX;
 
         int top = Math.max(0, playerY - VIEW_RADIUS);
         int left = tileMap.wrapX(playerX - VIEW_RADIUS);
@@ -98,7 +115,20 @@ public class InfoHandler implements HttpHandler {
         }
 
         json.append("]}");
-        sendResponse(he, 200, json.toString());
+        String body = json.toString();
+        // Identical to what this session last received -> nothing changed, 204.
+        // Any world change (own move, other players, take/place/use) alters
+        // the body, so the next request naturally returns 200 again.
+        // EXCEPT when the client's reported y/x is stale: its picture of the
+        // world is wrong regardless of whether ours changed, so it must get
+        // the full body to resync (its screen has lost the avatar).
+        if (!clientStale && body.equals(lastBody.get(token))) {
+            he.sendResponseHeaders(204, -1);
+            he.close();
+            return;
+        }
+        lastBody.put(token, body);
+        sendResponse(he, 200, body);
     }
 
     private void setCorsHeaders(HttpExchange exchange) {
