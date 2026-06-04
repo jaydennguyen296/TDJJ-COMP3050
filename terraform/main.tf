@@ -1,4 +1,6 @@
 terraform {
+  backend "s3" {}
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -47,6 +49,7 @@ resource "aws_security_group" "Server" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
 }
 
 # ------------------ variables ---------------------------
@@ -61,7 +64,7 @@ variable "dockerhub_username" {
   type        = string
 }
 
-# ------------------ something (idk yet) ---------------------------
+# ------------------ Instance OS ---------------------------
 
 data "aws_ssm_parameter" "ami" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
@@ -75,7 +78,7 @@ resource "aws_instance" "tutorial" {
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.Server.id]
 
- user_data = <<-EOF
+  user_data = <<-EOF
     #!/bin/bash
     yum update -y
     dnf install -y docker
