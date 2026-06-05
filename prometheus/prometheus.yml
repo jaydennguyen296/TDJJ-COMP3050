@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: 15s #slower intervals to try to conserve space on the server as the free plan is only 1GB
 
 scrape_configs:
   - job_name: 'java-app'
